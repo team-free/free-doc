@@ -1,4 +1,4 @@
-free-tutor
+free-doc
 ==========
 
-Tutorial for the "free" Haskell package
+Documentation for the "free" Haskell package
