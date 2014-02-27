@@ -162,7 +162,7 @@ instances of Plus (semigroupoid package).
     (C $  
       ( \h :< s -> 
         \(a)      ->  
-        let (f :< t) = (h .) :< (fmap (.) s) in
+        let (f :< t) = (h .) :< (fmap (fmap (.)) s) in
         let (b :< n) = bimap f (fmap f) a in 
         b :< (n <|> fmap (<*> (C v)) t)) <$> u <*> v) <*> C w
 
@@ -171,23 +171,435 @@ instances of Plus (semigroupoid package).
 
     (C $  
       ( \h :< s -> 
-        \(a)      ->  
-        let (b :< n) = bimap (h .)  (fmap (h .)) a in 
-        b :< (n <|> fmap (<*> (C v)) (fmap (.) s)) <$> u <*> v) <*> C w
+        \g :< r ->  
+        let (b :< n) = bimap (h .) (fmap (h .)) (g :< r) in 
+        b :< (n <|> fmap (<*> (C v)) (fmap (fmap (.)) s)) <$> u <*> v) <*> C w
 
-== 
+== { definition of bimap } 
+
+    (C $  
+      ( \h :< s -> 
+        \g :< r ->  
+        let (b :< n) = (h . g) :< (fmap (fmap (h .)) r) in 
+        b :< (n <|> fmap (<*> (C v)) (fmap (fmap (.)) s)) <$> u <*> v) <*> C w
+
+== { β-equivalence } ==
+
+    (C $  
+      ( \h :< s -> 
+        \g :< r ->  
+        (h . g) :< (fmap (fmap (h .)) r) <|> 
+                    fmap (<*> (C v)) (fmap (fmap (.)) s)) <$> u <*> v) <*> C w
+
+== { fmap distributes over composition } =
+
+    (C $  
+      ( \h :< s -> 
+        \g :< r ->  
+        (h . g) :< (fmap (fmap (h .)) r) <|> 
+                    fmap (<*> (C v)) . (fmap (.)) s)) <$> u <*> v) <*> C w
+
+
+== { definition of <*> } ==  
+
+    C $
+      
+      (\(f :< t) -> 
+        \(a)      ->  
+        let (b :< n) = bimap f (fmap f) a in 
+        b :< (n <|> fmap (<*> C w) t))   
+
+      <$>
+     
+      (( \h :< s -> 
+         \g :< r ->  
+         (h . g) :< (fmap (fmap (h .)) r) <|> 
+                     fmap (<*> (C v)) . (fmap (.)) s) <$> u <*> v) <*> w
+
+== { pattern match on CofreeF } ==
+
+    C $
+      
+      (\(f :< t) -> 
+       \(i :< p) ->  
+        let (b :< n) = bimap f (fmap f) (i :< p) in 
+        b :< (n <|> fmap (<*> C w) t))   
+
+      <$>
+     
+      (( \h :< s -> 
+         \g :< r ->  
+         (h . g) :< (fmap (fmap (h .)) r) <|> 
+                     fmap (<*> (C v)) . (fmap (.)) s) <$> u <*> v) <*> w
+
+== { definition of bimap } ==
+
+    C $
+      
+      (\(f :< t) -> 
+       \(i :< p) ->  
+        let (b :< n) = (f i) :< fmap (fmap f) p) in 
+        b :< (n <|> fmap (<*> C w) t))   
+
+      <$>
+     
+      (( \h :< s -> 
+         \g :< r ->  
+         (h . g) :< (fmap (fmap (h .)) r) <|> 
+                     fmap (<*> (C v)) . (fmap (.)) s) <$> u <*> v) <*> w
+
+
+== { β-equivalence } ==
+
+    C $
+      
+      (\(f :< t) -> 
+       \(i :< p) ->  
+        (f i) :< (fmap (fmap f) p <|> fmap (<*> C w) t))   
+
+      <$>
+     
+      (( \h :< s -> 
+         \g :< r ->  
+         (h . g) :< (fmap (fmap (h .)) r <|> 
+                     fmap ((<*> (C v)) . (fmap (.))) s)) <$> u <*> v) <*> w
+
+== { (f <$>) == ((pure f) <*>) for w Applicative } ==
+
+    C $
+      
+    ((pure (\(f :< t) -> 
+            \(i :< p) ->  
+             (f i) :< (fmap (fmap f) p <|> fmap (<*> C w) t)))
+
+      <*>
+     
+      (pure ( \h :< s -> 
+               \g :< r ->  
+               (h . g) :< (fmap (fmap (h .)) r) <|> 
+                           fmap ((<*> (C v)) . (fmap (.))) s) <*> u <*> v) <*> w
+
+== { <*> left associative } ==
+
+    C $
+      
+    (pure (\(f :< t) -> 
+            \(i :< p) ->  
+             (f i) :< (fmap (fmap f) p <|> fmap (<*> C w) t)))
+
+      <*>
+     
+      ((pure ( \h :< s -> 
+               \g :< r ->  
+               (h . g) :< (fmap (fmap (h .)) r) <|> 
+                           fmap ((<*> (C v)) . (fmap (.))) s) <*> u) <*> v) <*> w
+
+== { composition law for <*> for w Applicative } ==
+
+    C $
+    
+    (pure (.) <*>
+   
+     pure (\(f :< t) -> 
+           \(i :< p) ->  
+           (f i) :< (fmap (fmap f) p <|> fmap (<*> C w) t))
+
+      <*>
+     
+      (pure ( \h :< s -> 
+               \g :< r ->  
+               (h . g) :< (fmap (fmap (h .)) r) <|> 
+                           fmap (<*> (C v)) . (fmap (.)) s) <*> u) <*> v) <*> w
+
+== { <*> is left associative } ==
+
+    C $
+    
+    ((pure (.) <*>
+   
+     pure (\(f :< t) -> 
+           \(i :< p) ->  
+           (f i) :< (fmap (fmap f) p <|> fmap (<*> C w) t)))
+
+      <*>
+     
+      (pure ( \h :< s -> 
+               \g :< r ->  
+               (h . g) :< (fmap (fmap (h .)) r) <|> 
+                           fmap (<*> (C v)) . (fmap (.)) s) <*> u)) <*> v) <*> w
+
+== { composition law for <*> } ==
+
+   ((pure (.) <*>
+
+     ((pure (.) <*>
+   
+      pure (\(f :< t) -> 
+            \(i :< p) ->  
+            (f i) :< (fmap (fmap f) p <|> fmap (<*> C w) t))))
+
+      <*>
+     
+         pure ( \h :< s -> 
+                \g :< r ->  
+                (h . g) :< (fmap (fmap (h .)) r) <|> 
+                            fmap (<*> (C v)) . (fmap (.)) s) <*> u) <*> v) <*> w
+
+== { composition law for <*> }
+
+  ((pure (.) <*>
+
+    pure (.) <*>
+
+      pure (.) <*>
+   
+        pure (\(f :< t) -> 
+              \(i :< p) ->  
+              (f i) :< (fmap (fmap f) p <|> fmap (<*> C w) t))
+ 
+      <*>
+     
+         pure ( \h :< s -> 
+                \g :< r ->  
+                (h . g) :< (fmap (fmap (h .)) r) <|> 
+                            fmap (<*> (C v)) . (fmap (.)) s) <*> u) <*> v) <*> w
+
+
+== { <*> is left associative } ==
+
+  pure (.) <*>
+
+    pure (.) <*>
+
+      pure (.) <*>
+   
+        pure (\(f :< t) -> 
+              \(i :< p) ->  
+              (f i) :< (fmap (fmap f) p <|> fmap (<*> C w) t))
+ 
+      <*>
+     
+         pure ( \h :< s -> 
+                \g :< r ->  
+                (h . g) :< (fmap (fmap (h .)) r) <|> 
+                            fmap (<*> (C v)) . (fmap (.)) s) <*> u <*> v <*> w
+
+==
 
 !TODO!
 
 ==
 
+
+  C $
+  (pure (.)
+   <*>
+   pure (.)
+    <*>
+    (pure (.)
+     <*>
+     pure (.))
+      <*>
+      pure ( \(f :< t) -> 
+             \(g :< r) ->  
+              (f g) :< ((fmap (fmap f) r) <|> fmap (<*> (C v <*> C w))) t)
+              <*> 
+              u
+              <*> 
+        pure ( \(h :< s) -> 
+              \(i :< p)      ->  
+              (h i) :< ((fmap (fmap h) p) <|> fmap (<*> C w) s)) <*> v) <*> w)
+
+
+
+
+== 
+
+    C $
+   (pure (.)
+    <*>
+    ((pure (.)
+     <*>
+     pure (.)
+      <*>
+      pure ( \(f :< t) -> 
+             \(g :< r) ->  
+              (f g) :< ((fmap (fmap f) r) <|> fmap (<*> (C v <*> C w))) t)
+              <*> 
+              u))
+              <*> 
+        pure ( \(h :< s) -> 
+              \(i :< p)      ->  
+              (h i) :< ((fmap (fmap h) p) <|> fmap (<*> C w) s)) <*> v) <*> w)
+
+
+
+==
+
+
+    C $
+    (pure (.)
+     <*>
+     pure (.)
+      <*>
+      pure ( \(f :< t) -> 
+             \(g :< r) ->  
+              (f g) :< ((fmap (fmap f) r) <|> fmap (<*> (C v <*> C w))) t)
+              <*> 
+              u
+              <*> 
+       (pure ( \(h :< s) -> 
+              \(i :< p)      ->  
+              (h i) :< ((fmap (fmap h) p) <|> fmap (<*> C w) s)) <*> v) <*> w)
+
+
+== { composition law for w Applicative }
+
+    C $
+     (pure (.)
+      <*>
+      (pure ( \(f :< t) -> 
+             \(g :< r) ->  
+              (f g) :< ((fmap (fmap f) r) <|> fmap (<*> (C v <*> C w))) t)
+              <*> 
+              u)
+              <*> 
+       (pure ( \(h :< s) -> 
+              \(i :< p)      ->  
+              (h i) :< ((fmap (fmap h) p) <|> fmap (<*> C w) s)) <*> v) <*> w)
+
+
+
+== { composition law for w Applicative   } ==
+
+    C $
+      (pure ( \(f :< t) -> 
+             \(g :< r) ->  
+              (f g) :< ((fmap (fmap f) r) <|> fmap (<*> (C v <*> C w))) t)
+              <*> 
+              u)
+              <*> 
+      ((pure ( \(h :< s) -> 
+              \(i :< p)      ->  
+              (h i) :< ((fmap (fmap h) p) <|> fmap (<*> C w) s)) <*> v) <*> w)
+
+
+== { <*> is left associative } ==
+
+    C $
+      pure ( \(f :< t) -> 
+             \(g :< r) ->  
+              (f g) :< ((fmap (fmap f) r) <|> fmap (<*> (C v <*> C w))) t)
+              <*> 
+              u 
+              <*> 
+      (pure ( \(h :< s) -> 
+              \(i :< p)      ->  
+              (h i) :< ((fmap (fmap h) p) <|> fmap (<*> C w) s)) <*> v <*> w)
+
+
+
+== { (f <$>) == ((pure f) <*>) for w Applicative } ==
+
+    C $
+      ( \(f :< t) -> 
+        \(g :< r) ->  
+        (f g) :< ((fmap (fmap f) r) <|> fmap (<*> (C v <*> C w))) t)
+              <$> u 
+              <*> 
+      (( \(h :< s) -> 
+         \(i :< p)      ->  
+         (h i) :< ((fmap (fmap h) p) <|> fmap (<*> C w) s)) <$> v <*> w)
+
+== { β-equivalence } ==
+
+    C $
+      ( \(f :< t) -> 
+        \(g :< r) ->  
+        (f g) :< ((fmap (fmap f) r) <|> fmap (<*> (C v <*> C w))) t)
+              <$> u 
+              <*> 
+      (( \(h :< s) -> 
+         \(i :< p)      ->  
+         let (b :< n) = (h i) :< (fmap (fmap h) p) in 
+         b :< (n <|> fmap (<*> C w) s)) <$> v <*> w)
+
+
+== { definition of bimap } ==
+
+    C $
+      ( \(f :< t) -> 
+        \(g :< r) ->  
+        (f g) :< ((fmap (fmap f) r) <|> fmap (<*> (C v <*> C w))) t)
+              <$> u 
+              <*> 
+      (( \(h :< s) -> 
+         \(i :< p)      ->  
+         let (b :< n) = bimap h (fmap h) (i :< p) in 
+         b :< (n <|> fmap (<*> C w) s)) <$> v <*> w)
+
+
+== { pattern matching against CofreeF } ==
+
+    C $
+      ( \(f :< t) -> 
+        \(g :< r) ->  
+        (f g) :< ((fmap (fmap f) r) <|> fmap (<*> (C v <*> C w))) t)
+              <$> u 
+              <*> 
+      (( \(h :< s) -> 
+         \(a)      ->  
+         let (b :< n) = bimap h (fmap h) a in 
+         b :< (n <|> fmap (<*> C w) s)) <$> v <*> w)
+
+
+== { α-conversion } 
+
+    C $
+      ( \(f :< t) -> 
+        \(g :< r) ->  
+        (f g) :< ((fmap (fmap f) r) <|> fmap (<*> (C v <*> C w))) t)
+              <$> u 
+              <*> 
+      (( \(f :< t) -> 
+         \(a)      ->  
+         let (b :< n) = bimap f (fmap f) a in 
+         b :< (n <|> fmap (<*> C w) t)) <$> v <*> w)
+
+== { definition of <*> } ==
+
+    C $
+      ( \(f :< t) -> 
+        \(g :< r) ->  
+        (f g) :< ((fmap (fmap f) r) <|> fmap (<*> (C v <*> C w))) t)
+              <$> u 
+              <*> unC (C v <*> C w)
+
+== { β-equivalence } ==
+
+    C $
+      ( \(f :< t) -> 
+        \(g :< r)      ->  
+        let (b :< n) = (f g) :< (fmap (fmap f) r) in 
+        b :< (n <|> fmap (<*> (C v <*> C w))) t)) <$> u <*> unC (C v <*> C w)
+
+== { definition of bimap }
+
+    C $
+      ( \(f :< t) -> 
+        \(g :< r)      ->  
+        let (b :< n) = bimap f (fmap f) (g :< r) in 
+        b :< (n <|> fmap (<*> (C v <*> C w))) t)) <$> u <*> unC (C v <*> C w)
+
+== { pattern match on CofreeF } ==
+
     C $
       ( \(f :< t) -> 
         \(a)      ->  
         let (b :< n) = bimap f (fmap f) a in 
-        b :< (n <|> fmap (<*> (C v)) t)) <$> u <*> unC (C v <*> C w)
+        b :< (n <|> fmap (<*> (C v <*> C w))) t)) <$> u <*> unC (C v <*> C w)
 
-==
+== { definition of <*> } ==
 
    C u <*> (C v <*> C w)
 
