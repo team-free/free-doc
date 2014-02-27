@@ -1,11 +1,11 @@
 APPLICATIVE INSTANCE FOR COFREE TRANSFORMER
 
-If the underlying functor f is an instance of Alternative, then CofreeT is also an
-applicative functor.
+If the underlying functor f is an instance of Alternative, then CofreeT is also
+an applicative functor.
 
 Note that the only required properties of Alternative are associativity and
-identity element, so one could also use functors that are instances of Plus
-(semigroupoid package).
+existence of an identity element, so one could also use functors that are
+instances of Plus (semigroupoid package).
 
 > instance (Alternative f, Monad w) => Monad (CofreeT f w) where
 >   return = CofreeT . return . (:< empty)
@@ -92,9 +92,90 @@ identity element, so one could also use functors that are instances of Plus
       ( \(f :< t) -> 
         \(a)      ->  
         let (b :< n) = bimap f (fmap f) a in 
-        b :< (n <|> fmap (<*> (C u)) t)) <$> pure (.) <*> C u) <*> C v <*> C w
+        b :< (n <|> fmap (<*> (C u)) t)) <$> pure ((.) :< empty) <*> u) <*> C v <*> C w
 
-==
+== { w is Applicative } ==
+
+    (C $
+       pure (\(a)      ->  
+        let (b :< n) = bimap (.) (fmap (.)) a in 
+        b :< (n <|> fmap (<*> (C u)) empty)) <*> u) <*> C v <*> C w
+
+== { empty invariant under fmap } == 
+
+    (C $
+       pure (\(a)      ->  
+        let (b :< n) = bimap (.) (fmap (.)) a in 
+        b :< (n <|> empty)) <*> u) <*> C v <*> C w
+
+== { empty is identity } ==
+
+    (C $
+       pure (\(a)      ->  
+        let (b :< n) = bimap (.) (fmap (.)) a in 
+        b :< n) <*> u) <*> C v <*> C w
+
+== { η equivalence } ==
+
+    (C $ (bimap (.) (fmap (.)) <$> u) <*> C v <*> C w
+
+== { definition of (<*>) ==
+
+    (C $  
+      ( \(f :< t) -> 
+        \(a)      ->  
+        let (b :< n) = bimap f (fmap f) a in 
+        b :< (n <|> fmap (<*> (C v)) t)) <$> 
+          (bimap (.) (fmap (.))) <$> u <*> v) <*> C w
+
+== { η-equivalence } ==
+
+    (C $  
+      ( \fc -> 
+        \(a)      ->  
+        let (f :< t) = fc in
+        let (b :< n) = bimap f (fmap f) a in 
+        b :< (n <|> fmap (<*> (C v)) t)) <$> 
+          (bimap (.) (fmap (.))) <$> u <*> v) <*> C w
+
+
+== { fmap respects composition for w } ==
+
+    (C $  
+      ( \hc -> 
+        \(a)      ->  
+        let (f :< t) = bimap (.) (fmap (.)) hc in
+        let (b :< n) = bimap f (fmap f) a in 
+        b :< (n <|> fmap (<*> (C v)) t)) <$> u <*> v) <*> C w
+
+== { single constructor for CofreeF } ==
+
+    (C $  
+      ( \h :< s -> 
+        \(a)      ->  
+        let (f :< t) = bimap (.) (fmap (.)) (h :< s) in
+        let (b :< n) = bimap f (fmap f) a in 
+        b :< (n <|> fmap (<*> (C v)) t)) <$> u <*> v) <*> C w
+
+== { definition of bimap } ==
+
+    (C $  
+      ( \h :< s -> 
+        \(a)      ->  
+        let (f :< t) = (h .) :< (fmap (.) s) in
+        let (b :< n) = bimap f (fmap f) a in 
+        b :< (n <|> fmap (<*> (C v)) t)) <$> u <*> v) <*> C w
+
+
+== { β-equivalence } ==
+
+    (C $  
+      ( \h :< s -> 
+        \(a)      ->  
+        let (b :< n) = bimap (h .)  (fmap (h .)) a in 
+        b :< (n <|> fmap (<*> (C v)) (fmap (.) s)) <$> u <*> v) <*> C w
+
+== 
 
 !TODO!
 
@@ -104,7 +185,7 @@ identity element, so one could also use functors that are instances of Plus
       ( \(f :< t) -> 
         \(a)      ->  
         let (b :< n) = bimap f (fmap f) a in 
-        b :< (n <|> fmap (<*> (C v)) t)) <$> u <*> (unC $ C v <*> C w)
+        b :< (n <|> fmap (<*> (C v)) t)) <$> u <*> unC (C v <*> C w)
 
 ==
 
